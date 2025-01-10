@@ -1,48 +1,34 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth } from '../firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import React, { createContext, useContext, useState } from 'react';
 
+// Create the AuthContext
 const AuthContext = createContext();
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+// Create a provider component
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
 
-export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const createUser = (email, password) => {
-    return createUserWithEmailAndPassword(auth, email, password);
-  };
-
-  const login = (email, password) => {
-    return signInWithEmailAndPassword(auth, email, password);
+  const login = (userData) => {
+    setUser(userData);
+    localStorage.setItem('token', userData.token); // Store token if needed
   };
 
   const logout = () => {
-    return signOut(auth);
+    setUser(null);
+    localStorage.removeItem('token'); // Clear token on logout
   };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, user => {
-      setCurrentUser(user);
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
-
-  const value = {
-    currentUser,
-    createUser,
-    login,
-    logout
+  const isAuthenticated = () => {
+    return user !== null; // or check localStorage for token
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
+      {children}
     </AuthContext.Provider>
   );
-}
+};
+
+// Custom hook to use the AuthContext
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
